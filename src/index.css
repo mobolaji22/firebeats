@@ -1,0 +1,27 @@
+@import "tailwindcss";
+
+:root {
+  --fire-red: #ff3b30;
+  --yellow-orange: #ff9500;
+}
+
+body {
+  @apply antialiased;
+}
+
+/* Custom scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  @apply bg-gray-700 rounded-full;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  @apply bg-gray-600;
+}
