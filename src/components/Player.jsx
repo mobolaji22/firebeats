@@ -13,7 +13,9 @@ import {
   Volume1,
   VolumeX,
   Music,
+  Maximize2,
 } from "lucide-react";
+import NowPlayingScreen from "./NowPlayingScreen";
 
 const Player = ({ currentSong, isPlaying, setIsPlaying, liked, setLiked }) => {
   const [currentTime, setCurrentTime] = useState(0);
@@ -21,6 +23,7 @@ const Player = ({ currentSong, isPlaying, setIsPlaying, liked, setLiked }) => {
   const [isMuted, setIsMuted] = useState(false);
   const [isShuffleActive, setIsShuffleActive] = useState(false);
   const [isRepeatActive, setIsRepeatActive] = useState(false);
+  const [showNowPlaying, setShowNowPlaying] = useState(false);
 
   const progressRef = useRef(null);
   const volumeRef = useRef(null);
@@ -89,23 +92,28 @@ const Player = ({ currentSong, isPlaying, setIsPlaying, liked, setLiked }) => {
   };
 
   return (
-    <div className="h-24 bg-gray-900 border-t border-gray-800 px-4 flex items-center justify-between">
-      {/* Now Playing */}
-      <div className="w-1/3 flex items-center">
-        <div className="w-14 h-14 bg-gradient-to-br from-red-500 to-amber-500 rounded flex items-center justify-center flex-shrink-0 mr-3">
-          <Music size={20} className="text-white" />
-        </div>
-        <div className="mr-4">
-          <h4 className="font-medium text-sm">{currentSong.title}</h4>
-          <p className="text-xs text-gray-400">{currentSong.artist}</p>
-        </div>
-        <button
-          className={`text-lg ${
-            liked ? "text-red-500" : "text-gray-400 hover:text-white"
-          }`}
-          onClick={() => setLiked(!liked)}>
-          <Heart fill={liked ? "currentColor" : "none"} size={18} />
-        </button>
+    <>
+      <div className="h-24 bg-gray-900 border-t border-gray-800 px-4 flex items-center justify-between">
+        {/* Now Playing */}
+        <div className="w-1/3 flex items-center">
+          <div
+            className="flex items-center cursor-pointer"
+            onClick={() => setShowNowPlaying(true)}>
+            <div className="w-14 h-14 bg-gradient-to-br from-red-500 to-amber-500 rounded flex items-center justify-center flex-shrink-0 mr-3">
+              <Music size={20} className="text-white" />
+            </div>
+            <div className="mr-4">
+              <h4 className="font-medium text-sm">{currentSong.title}</h4>
+              <p className="text-xs text-gray-400">{currentSong.artist}</p>
+            </div>
+            <button
+              className={`text-lg ${
+                liked ? "text-red-500" : "text-gray-400 hover:text-white"
+              }`}
+              onClick={() => setLiked(!liked)}>
+              <Heart fill={liked ? "currentColor" : "none"} size={18} />
+            </button>
+          </div>
       </div>
 
       {/* Player Controls */}
@@ -169,6 +177,11 @@ const Player = ({ currentSong, isPlaying, setIsPlaying, liked, setLiked }) => {
         <button className="mx-2 text-gray-400 hover:text-white">
           <List size={18} />
         </button>
+        <button
+          className="mx-2 text-gray-400 hover:text-white"
+          onClick={() => setShowNowPlaying(true)}>
+          <Maximize2 size={18} />
+        </button>
         <button className="mx-2 text-gray-400 hover:text-white">
           <Monitor size={18} />
         </button>
@@ -191,6 +204,18 @@ const Player = ({ currentSong, isPlaying, setIsPlaying, liked, setLiked }) => {
         </div>
       </div>
     </div>
+
+      {/* Now Playing Screen */}
+      {showNowPlaying && (
+        <NowPlayingScreen
+          currentSong={currentSong}
+          isPlaying={isPlaying}
+          liked={liked}
+          setLiked={setLiked}
+          onClose={() => setShowNowPlaying(false)}
+        />
+      )}
+    </>
   );
 };
 

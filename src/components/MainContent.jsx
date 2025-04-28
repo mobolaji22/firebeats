@@ -11,6 +11,8 @@ import {
   Play,
 } from "lucide-react";
 
+import { searchMulti, getRecommendations } from '../services/spotifyApi';
+
 const MainContent = ({ onPlaySong, currentSongId }) => {
   const [greeting, setGreeting] = useState("Good afternoon");
 
@@ -29,7 +31,7 @@ const MainContent = ({ onPlaySong, currentSongId }) => {
     { id: "90s", icon: Disc, name: "90s Hits", count: "65 songs" },
     {
       id: "podcast",
-      icon: Mic, // Changed from Microphone to Mic
+      icon: Mic,
       name: "Podcast Favorites",
       count: "12 episodes",
     },
@@ -89,6 +91,32 @@ const MainContent = ({ onPlaySong, currentSongId }) => {
   ];
 
   const [hoveredSongId, setHoveredSongId] = useState(null);
+
+  const [featuredTracks, setFeaturedTracks] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchFeaturedContent = async () => {
+      try {
+        setIsLoading(true);
+        // Get some initial recommendations
+        const recommendations = await getRecommendations({
+          limit: 5,
+          seedTracks: '0c6xIDDpzE81m2q797ordA',
+          seedArtists: '4NHQUGzhtTLFvgF5SZesLK',
+          seedGenres: 'pop,rock'
+        });
+        
+        setFeaturedTracks(recommendations.tracks);
+      } catch (error) {
+        console.error('Error fetching featured content:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchFeaturedContent();
+  }, []);
 
   return (
     <div className="flex-grow flex flex-col overflow-hidden bg-gradient-to-b from-red-500/20 via-black to-black">
