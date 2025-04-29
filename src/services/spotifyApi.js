@@ -1,12 +1,13 @@
 import axios from 'axios';
 
 const BASE_URL = 'https://spotify23.p.rapidapi.com';
-const API_KEY = '63434cc2b0mshf8eee09423bc8cfp1df962jsn0377ab9e3079';
+// Read the API key from environment variables
+const API_KEY = import.meta.env.VITE_SPOTIFY_API_KEY;
 
 const spotifyApi = axios.create({
   baseURL: BASE_URL,
   headers: {
-    'x-rapidapi-key': API_KEY,
+    'x-rapidapi-key': API_KEY, // Use the variable here
     'x-rapidapi-host': 'spotify23.p.rapidapi.com'
   }
 });
@@ -59,6 +60,10 @@ export const getTrackDetails = async (trackId) => {
 
 export const getRecommendations = async (params) => {
   try {
+    // Ensure API_KEY is available before making the request
+    if (!API_KEY) {
+      throw new Error("Spotify API Key is missing. Make sure it's set in your .env file as VITE_SPOTIFY_API_KEY.");
+    }
     const response = await spotifyApi.get('/recommendations/', {
       params: {
         limit: params.limit || '20',
@@ -70,6 +75,10 @@ export const getRecommendations = async (params) => {
     return response.data;
   } catch (error) {
     console.error('Get recommendations error:', error);
+    // Optionally re-throw or handle specific errors like missing key
+    if (error.message.includes("Spotify API Key is missing")) {
+       alert(error.message); // Or display a more user-friendly message
+    }
     throw error;
   }
 };

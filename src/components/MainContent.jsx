@@ -9,12 +9,24 @@ import {
   Disc,
   Mic,
   Play,
+  Clock, // Import Clock icon
+  ChevronDown, // Import ChevronDown if not already (it was missing in the provided snippet)
 } from "lucide-react";
 
 import { searchMulti, getRecommendations } from '../services/spotifyApi';
 
+// Helper function to format duration from ms to M:SS
+const formatDuration = (ms) => {
+  const minutes = Math.floor(ms / 60000);
+  const seconds = ((ms % 60000) / 1000).toFixed(0);
+  return `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+};
+
 const MainContent = ({ onPlaySong, currentSongId }) => {
   const [greeting, setGreeting] = useState("Good afternoon");
+  const [featuredTracks, setFeaturedTracks] = useState([]);
+  const [isLoadingTracks, setIsLoadingTracks] = useState(true); // Renamed for clarity
+  const [hoveredSongId, setHoveredSongId] = useState(null);
 
   useEffect(() => {
     const hour = new Date().getHours();
@@ -23,6 +35,7 @@ const MainContent = ({ onPlaySong, currentSongId }) => {
     else setGreeting("Good evening");
   }, []);
 
+  // Mock playlists - we'll replace this later
   const playlists = [
     { id: "liked", icon: Heart, name: "Liked Songs", count: "124 songs" },
     { id: "summer", icon: Music, name: "Summer Vibes", count: "47 songs" },
@@ -37,86 +50,53 @@ const MainContent = ({ onPlaySong, currentSongId }) => {
     },
   ];
 
-  const recentSongs = [
-    {
-      id: 1,
-      title: "Ignite The Night",
-      artist: "Fire Starters",
-      album: "Burn It Up",
-      date: "2 days ago",
-      duration: "3:45",
-      durationSeconds: 225,
-      cover: "music",
-    },
-    {
-      id: 2,
-      title: "Sunrise Groove",
-      artist: "Morning Flames",
-      album: "Dawn Breaks",
-      date: "3 days ago",
-      duration: "4:12",
-      durationSeconds: 252,
-      cover: "music",
-    },
-    {
-      id: 3,
-      title: "Amber Waves",
-      artist: "Desert Heat",
-      album: "Scorched Earth",
-      date: "1 week ago",
-      duration: "3:21",
-      durationSeconds: 201,
-      cover: "music",
-    },
-    {
-      id: 4,
-      title: "Inferno Beat",
-      artist: "Flame Throwers",
-      album: "Hot Takes",
-      date: "2 weeks ago",
-      duration: "2:58",
-      durationSeconds: 178,
-      cover: "music",
-    },
-    {
-      id: 5,
-      title: "Phoenix Rising",
-      artist: "Rebirth Cycle",
-      album: "From Ashes",
-      date: "2 weeks ago",
-      duration: "5:32",
-      durationSeconds: 332,
-      cover: "music",
-    },
-  ];
-
-  const [hoveredSongId, setHoveredSongId] = useState(null);
-
-  const [featuredTracks, setFeaturedTracks] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
+  // Remove mock recentSongs array
+  // const recentSongs = [ ... ];
 
   useEffect(() => {
     const fetchFeaturedContent = async () => {
       try {
-        setIsLoading(true);
-        // Get some initial recommendations
+        setIsLoadingTracks(true); // Use the renamed state setter
         const recommendations = await getRecommendations({
-          limit: 5,
-          seedTracks: '0c6xIDDpzE81m2q797ordA',
-          seedArtists: '4NHQUGzhtTLFvgF5SZesLK',
-          seedGenres: 'pop,rock'
+          limit: 10, // Fetch more tracks for the table
+          seedTracks: '0c6xIDDpzE81m2q797ordA', // Example seed track
+          seedArtists: '4NHQUGzhtTLFvgF5SZesLK', // Example seed artist
+          seedGenres: 'pop,rock,electronic' // Example seed genres
         });
-        
-        setFeaturedTracks(recommendations.tracks);
+
+        // Ensure recommendations.tracks is an array before setting state
+        if (recommendations && Array.isArray(recommendations.tracks)) {
+          setFeaturedTracks(recommendations.tracks);
+        } else {
+          console.error('API did not return tracks array:', recommendations);
+          setFeaturedTracks([]); // Set to empty array on error or unexpected format
+        }
       } catch (error) {
         console.error('Error fetching featured content:', error);
+        setFeaturedTracks([]); // Set to empty array on fetch error
       } finally {
-        setIsLoading(false);
+        setIsLoadingTracks(false); // Use the renamed state setter
       }
     };
 
     fetchFeaturedContent();
   }, []);
+
+  // Prepare song data for the player
+  const prepareSongData = (track) => {
+    return {
+      id: track.id,
+      title: track.name,
+      artist: track.artists?.map(a => a.name).join(', ') || 'Unknown Artist',
+      album: track.album?.name || 'Unknown Album',
+      duration: formatDuration(track.duration_ms),
+      durationSeconds: Math.floor(track.duration_ms / 1000),
+      cover: track.album?.images?.[0]?.url || 'music', // Use album art or fallback
+      // Add the raw track object if needed by the player or other components
+      apiTrack: track
+    };
+  };
+
 
   return (
     <div className="flex-grow flex flex-col overflow-hidden bg-gradient-to-b from-red-500/20 via-black to-black">
@@ -142,7 +122,7 @@ const MainContent = ({ onPlaySong, currentSongId }) => {
 
       {/* Content area */}
       <div className="flex-grow overflow-y-auto px-8 py-6 custom-scrollbar">
-        {/* Welcome section */}
+        {/* Welcome section (using mock playlists for now) */}
         <div className="mb-10">
           <h2 className="text-3xl font-bold mb-6">{greeting}</h2>
 
@@ -176,102 +156,99 @@ const MainContent = ({ onPlaySong, currentSongId }) => {
           </div>
         </div>
 
-        {/* Recently played section */}
+        {/* Featured Tracks section (replaces Recently played) */}
         <div className="mb-10">
           <div className="flex justify-between items-center mb-6">
-            <h3 className="text-2xl font-bold">Recently played</h3>
-            <a
-              href="#"
-              className="text-sm text-gray-400 font-semibold hover:underline">
-              See all
-            </a>
+            {/* Changed title */}
+            <h3 className="text-2xl font-bold">Featured Tracks</h3>
+            {/* Link might not be relevant anymore or could link elsewhere */}
+            {/* <a href="#" className="text-sm text-gray-400 font-semibold hover:underline">See all</a> */}
           </div>
 
-          <div className="bg-gray-900/40 rounded-lg overflow-hidden">
-            <table className="w-full border-collapse">
-              <thead>
-                <tr className="border-b border-gray-800 text-left text-gray-400">
-                  <th className="py-3 px-4 font-normal text-sm w-12">#</th>
-                  <th className="py-3 px-4 font-normal text-sm">Title</th>
-                  <th className="py-3 px-4 font-normal text-sm hidden md:table-cell">
-                    Album
-                  </th>
-                  <th className="py-3 px-4 font-normal text-sm hidden lg:table-cell">
-                    Date added
-                  </th>
-                  <th className="py-3 px-4 font-normal text-sm text-right">
-                    Duration
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {recentSongs.map((song, index) => (
-                  <tr
-                    key={song.id}
-                    className={`border-b border-gray-800/50 hover:bg-white/5 ${
-                      currentSongId === song.id ? "bg-white/10" : ""
-                    }`}
-                    onMouseEnter={() => setHoveredSongId(song.id)}
-                    onMouseLeave={() => setHoveredSongId(null)}
-                    onClick={() => onPlaySong(song)}>
-                    <td className="py-3 px-4 text-gray-400">
-                      {hoveredSongId === song.id ? (
-                        <Play size={16} className="text-white" />
-                      ) : (
-                        <span>{index + 1}</span>
-                      )}
-                    </td>
-                    <td className="py-3 px-4">
-                      <div className="flex items-center">
-                        <div className="w-10 h-10 bg-gradient-to-br from-red-500 to-amber-500 rounded flex items-center justify-center flex-shrink-0 mr-3">
-                          <Music size={16} className="text-white" />
-                        </div>
-                        <div>
-                          <h4
-                            className={`font-medium ${
-                              currentSongId === song.id ? "text-red-500" : ""
-                            }`}>
-                            {song.title}
-                          </h4>
-                          <p className="text-sm text-gray-400">{song.artist}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="py-3 px-4 hidden md:table-cell">
-                      {song.album}
-                    </td>
-                    <td className="py-3 px-4 hidden lg:table-cell text-gray-400 text-sm">
-                      {song.date}
-                    </td>
-                    <td className="py-3 px-4 text-gray-400 text-right text-sm">
-                      {song.duration}
-                    </td>
+          {isLoadingTracks ? (
+             <p>Loading tracks...</p> // Add a loading indicator
+          ) : featuredTracks.length === 0 ? (
+             <p>No featured tracks available.</p> // Handle empty state
+          ) : (
+            <div className="bg-gray-900/40 rounded-lg overflow-hidden">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr className="border-b border-gray-800 text-left text-gray-400">
+                    <th className="py-3 px-4 font-normal text-sm w-12">#</th>
+                    <th className="py-3 px-4 font-normal text-sm">Title</th>
+                    <th className="py-3 px-4 font-normal text-sm hidden md:table-cell">
+                      Album
+                    </th>
+                    {/* Removed Date Added column */}
+                    {/* <th className="py-3 px-4 font-normal text-sm hidden lg:table-cell">Date added</th> */}
+                    <th className="py-3 px-4 font-normal text-sm text-right">
+                      <Clock size={16} className="inline-block" />
+                    </th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {/* Map over featuredTracks instead of recentSongs */}
+                  {featuredTracks.map((track, index) => (
+                    <tr
+                      key={track.id}
+                      className="group hover:bg-gray-800/60 transition-colors"
+                      onMouseEnter={() => setHoveredSongId(track.id)}
+                      onMouseLeave={() => setHoveredSongId(null)}
+                      onClick={() => onPlaySong(prepareSongData(track))} // Use prepared data
+                      >
+                      <td className="py-3 px-4 text-gray-400">
+                        {/* Show play button on hover or if it's the current song */}
+                        {hoveredSongId === track.id || currentSongId === track.id ? (
+                          <Play
+                            size={16}
+                            fill="white"
+                            className={`text-white ${currentSongId === track.id ? 'text-red-500' : ''}`}
+                          />
+                        ) : (
+                          index + 1
+                        )}
+                      </td>
+                      <td className="py-3 px-4 flex items-center">
+                        {/* Use actual album art if available */}
+                        {track.album?.images?.[0]?.url ? (
+                           <img src={track.album.images[0].url} alt={track.album.name} className="w-10 h-10 rounded mr-4 object-cover"/>
+                        ) : (
+                           <div className="w-10 h-10 bg-gradient-to-br from-red-500 to-amber-500 rounded flex items-center justify-center flex-shrink-0 mr-4">
+                             <Music size={18} className="text-white" />
+                           </div>
+                        )}
+
+                        <div>
+                          <h4 className={`font-medium ${currentSongId === track.id ? 'text-red-500' : ''}`}>
+                            {track.name}
+                          </h4>
+                          <p className="text-sm text-gray-400">
+                            {/* Join multiple artists */}
+                            {track.artists?.map(a => a.name).join(', ')}
+                          </p>
+                        </div>
+                      </td>
+                      <td className="py-3 px-4 text-sm text-gray-400 hidden md:table-cell">
+                        {track.album?.name || 'Single'} {/* Show album name */}
+                      </td>
+                      {/* Removed Date Added cell */}
+                      {/* <td className="py-3 px-4 text-sm text-gray-400 hidden lg:table-cell">{song.date}</td> */}
+                      <td className="py-3 px-4 text-sm text-gray-400 text-right">
+                        {/* Format duration from ms */}
+                        {formatDuration(track.duration_ms)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
+
+        {/* Other sections (e.g., Made for you, Charts) can be added here later */}
       </div>
     </div>
   );
 };
-
-// Helper component
-const ChevronDown = ({ size, className }) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width={size}
-    height={size}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className={className}>
-    <path d="m6 9 6 6 6-6" />
-  </svg>
-);
 
 export default MainContent;
